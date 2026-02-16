@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Badminton Training Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background: #111827;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      max-width: 900px;
+      width: 100%;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .day {
+      background: #1f2937;
+      padding: 15px 20px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      transition: 0.2s;
+    }
+
+    .today {
+      border: 2px solid #22c55e;
+    }
+
+    .expandable {
+      cursor: pointer;
+    }
+
+    .expandable:hover {
+      background: #374151;
+    }
+
+    .workout {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #4b5563;
+      display: none;
+      font-size: 14px;
+    }
+
+    .calendar {
+      display: none;
+    }
+
+    .week {
+      background: #1f2937;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .week:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏸 Training Tracker</h1>
+
+    <div class="topbar">
+      <button onclick="showTracker()">Tracker</button>
+      <button onclick="showCalendar()">Kalender</button>
+    </div>
+
+    <div id="tracker"></div>
+    <div id="calendar" class="calendar"></div>
+  </div>
+
+  <script>
+    const plan = {
+      "Montag": {
+        tasks: ["Gym – Full Body (Strength)"],
+        workout: [
+          "Barbell Squat – 4×5–8",
+          "Romanian Deadlift – 3×8–10",
+          "Walking Lunges – 3×10/leg",
+          "Bench Press – 3×6–8"
+        ]
+      },
+      "Dienstag": {
+        tasks: ["Mobility – Wade & Sprunggelenk"],
+        workout: [
+          "Ankle Circles",
+          "Calf Stretch",
+          "Tibialis Raises"
+        ]
+      },
+      "Mittwoch": { tasks: ["Badminton Training"] },
+      "Donnerstag": {
+        tasks: ["Gym – Athletic / Prevention"],
+        workout: [
+          "Box Jumps",
+          "Bulgarian Split Squats",
+          "Face Pulls"
+        ]
+      },
+      "Freitag": { tasks: ["Badminton Training"] },
+      "Samstag": { tasks: ["Badminton Spielen / Matches"] },
+      "Sonntag": {
+        tasks: ["Rest / Stretching"],
+        workout: ["Stretching", "Foam Rolling"]
+      }
+    };
+
+    const daysOrder = [
+      "Sonntag",
+      "Montag",
+      "Dienstag",
+      "Mittwoch",
+      "Donnerstag",
+      "Freitag",
+      "Samstag"
+    ];
+
+    const tracker = document.getElementById("tracker");
+    const calendarDiv = document.getElementById("calendar");
+
+    function getDateKey(offset = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      return d.toISOString().split("T")[0];
+    }
+
+    function formatDisplayDate(dateKey) {
+      const d = new Date(dateKey);
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      return `${day}.${month}.`;
+    }
+
+    function saveState(key, value) {
+      localStorage.setItem(key, value);
+    }
+
+    function loadState(key) {
+      return localStorage.getItem(key) === "true";
+    }
+
+    function renderTracker() {
+      tracker.innerHTML = "";
+
+      const todayIndex = new Date().getDay();
+
+      const sortedDays = [];
+      for (let i = 0; i < 7; i++) {
+        sortedDays.push(daysOrder[(todayIndex + i) % 7]);
+      }
+
+      sortedDays.forEach((day, offset) => {
+        const dateKey = getDateKey(offset);
+        const data = plan[day];
+
+        const div = document.createElement("div");
+        div.className = "day";
+        if (offset === 0) div.classList.add("today");
+
+        const title = document.createElement("h2");
+        const displayDate = formatDisplayDate(dateKey);
+        title.textContent = `${day} (${displayDate})`;
+        div.appendChild(title);
+
+        data.tasks.forEach((task, i) => {
+          const id = `${dateKey}-${i}`;
+
+          const label = document.createElement("label");
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = loadState(id);
+
+          cb.onchange = () => saveState(id, cb.checked);
+
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(task));
+          div.appendChild(label);
+        });
+
+        if (data.workout) {
+          div.classList.add("expandable");
+
+          const w = document.createElement("div");
+          w.className = "workout";
+
+          data.workout.forEach(ex => {
+            const p = document.createElement("div");
+            p.textContent = "• " + ex;
+            w.appendChild(p);
+          });
+
+          div.appendChild(w);
+
+          div.onclick = e => {
+            if (e.target.tagName !== "INPUT") {
+              w.style.display = w.style.display === "block" ? "none" : "block";
+            }
+          };
+        }
+
+        tracker.appendChild(div);
+      });
+    }
+
+    function renderCalendar() {
+      calendarDiv.innerHTML = "";
+
+      for (let w = 0; w < 12; w++) {
+        const week = document.createElement("div");
+        week.className = "week";
+
+        const start = getDateKey(-7 * w);
+        const displayStart = formatDisplayDate(start);
+        week.textContent = `Woche von ${displayStart}`;
+
+        calendarDiv.appendChild(week);
+      }
+    }
+
+    function showTracker() {
+      tracker.style.display = "block";
+      calendarDiv.style.display = "none";
+    }
+
+    function showCalendar() {
+      tracker.style.display = "none";
+      calendarDiv.style.display = "block";
+    }
+
+    renderTracker();
+    renderCalendar();
+  </script>
+</body>
+</html>
